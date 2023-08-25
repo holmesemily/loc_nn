@@ -67,11 +67,11 @@ if COMPUTE_GCC:
         sample_freq, mulchannel = wav.read(cur_file) 
         mulchannel = mulchannel / 32768.0 # 32k to convert from int to float -1 1
         max_frame = math.floor((mulchannel.shape[0] - win_len)/hop_len) # max frame in the gt file, 261 here
-    
-        spectra = np.zeros((max_frame, nfft//2 + 1, nb_ch), dtype=complex)
+
+        spectra = np.zeros((max_frame, win_len//2 + 1, nb_ch), dtype=complex)
             
         for ch_cnt in range(nb_ch):
-            stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=nfft, hop_length=hop_len,
+            stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=win_len, hop_length=hop_len,
                                         win_length=win_len, window='hann')
 
             spectra[:, :, ch_cnt] = stft_ch[:, :max_frame].T # 261, 4097, 4
