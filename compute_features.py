@@ -14,18 +14,20 @@ import matplotlib.pyplot as plt
 DATASET_FOLDER = '../dataset/SSLR'
 TRAIN_FOLDER = 'lsp_train_106'
 TEST_FOLDER = 'lsp_test_106'
+NORM_FOLDER = 'norm'
+LABEL_FOLDER = 'label'
 
 AUDIO_FOLDER = 'audio'
 GT_FOLDER = 'gt_frame/'
 
 FEATURES_FOLDER = 'features'
 
-ACTIVE_FOLDER = TRAIN_FOLDER
+ACTIVE_FOLDER = TEST_FOLDER
 
 COMPUTE_MEL = 0
-COMPUTE_GCC = 1
+COMPUTE_GCC = 0
 COMPUTE_NORM = 0
-COMPUTE_LABEL = 0
+COMPUTE_LABEL = 1
 
 # spectrogram for each channel 
 nb_ch = 4
@@ -59,10 +61,18 @@ def compute_expression(Xi, Xj, time_delay_range):
     result = np.nan_to_num(np.sum(result_temp, axis=0), copy=False) # sum over w
     return result
 
+def compute_azimuth(x,y):
+    return int(math.degrees(math.atan2((x),(y))))
+
 if COMPUTE_GCC:
     for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
         cur_file = os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER, file_name)
         print(file_cnt)
+
+        check_file = file_name.split('.')[0] + '.csv'
+        check_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ACTIVE_FOLDER, check_file)
+        if os.path.isfile(check_file):
+            continue
         
         sample_freq, mulchannel = wav.read(cur_file) 
         mulchannel = mulchannel / 32768.0 # 32k to convert from int to float -1 1
@@ -89,7 +99,6 @@ if COMPUTE_GCC:
 
                     # Precompute the time delays corresponding to the Fourier frequencies
                     nfft = sig1.shape[0]
-                    freqs = np.fft.fftfreq(nfft, d=1/fs)
                     time_delays = np.fft.ifftshift(np.fft.fftfreq(nfft, d=1/fs))
 
                     # Compute the expression
@@ -204,3 +213,46 @@ if COMPUTE_MEL :
 
         save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ACTIVE_FOLDER, file_name)
         np.savetxt(save_path, f, delimiter = ',')
+
+if COMPUTE_NORM:
+    # normalize 
+    max = 0.0
+    min = 100.0
+    for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
+        cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ACTIVE_FOLDER, file_name.split('.')[0] + '.csv')
+        print(file_cnt)
+        f = np.genfromtxt(cur_file, delimiter=',', skip_header=0)
+
+        min = np.min(f) if np.min(f) < min else min
+        max = np.max(f) if np.max(f) > max else max
+
+    print(max, min)
+
+    for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
+        cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ACTIVE_FOLDER, file_name.split('.')[0] + '.csv')
+        print(file_cnt)
+        f = np.genfromtxt(cur_file, delimiter=',', skip_header=0)
+
+        f = 2*(f-min)/(max-min)-1
+
+        save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, NORM_FOLDER, ACTIVE_FOLDER, file_name.split('.')[0] + '.csv')
+        np.savetxt(save_path, f, delimiter = ',')
+
+if COMPUTE_LABEL:
+    for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, GT_FOLDER))):
+        print(file_cnt)
+        cur_file = os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, GT_FOLDER, file_name)
+        lbl = np.load(cur_file, allow_pickle=True)
+
+        ref_audio_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, NORM_FOLDER, ACTIVE_FOLDER, file_name.split('.')[0] + '.csv')
+        max_len = np.genfromtxt(cur_file, delimiter=',', skip_header=0).shape[0]
+        
+        out_lbl = np.zeros((max_len, 1))
+        for x in lbl:
+            for y in x[1]:
+                out_lbl[x[0], 0] = compute_azimuth(y[0][0], y[0][1])
+        
+        saved_file = file_name.split('.g')[0] + '.csv'
+        save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, ACTIVE_FOLDER, saved_file)
+        np.savetxt(save_path, out_lbl, delimiter = ",")
+        
