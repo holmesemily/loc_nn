@@ -14,8 +14,8 @@ gt_file = '../dataset/SSLR/features/label/lsp_train_106/ssl-data_2017-05-13-15-2
 df_pred = pd.read_csv(pred_file, header=None)
 df_gt = pd.read_csv(gt_file, header=None)
 
-plt.plot(df_pred, color='green', linestyle=':')
+plt.plot(df_pred, color='red', linestyle=':')
 plt.plot(df_gt, color='blue', linestyle='-')
-plt.plot(df_pred.rolling(window=5).mean(), color='red', linestyle='-')
+plt.plot(df_pred.rolling(window=4).mean(), color='red', linestyle='-')
 plt.savefig("aaaaaaa.png")
 # %%
