@@ -19,20 +19,22 @@ LABEL_FOLDER = 'label'
 
 AUDIO_FOLDER = 'audio'
 GT_FOLDER = 'gt_frame/'
+ALT_GCC_FOLDER = 'gcc2'
 
 FEATURES_FOLDER = 'features'
 
-ACTIVE_FOLDER = TEST_FOLDER
+ACTIVE_FOLDER = TRAIN_FOLDER
 
 COMPUTE_MEL = 0
 COMPUTE_GCC = 0
+COMPUTE_GCC2 = 1
 COMPUTE_NORM = 0
-COMPUTE_LABEL = 1
+COMPUTE_LABEL = 0
 
 # spectrogram for each channel 
 nb_ch = 4
 nfft = 8192
-nb_bins = 40
+nb_bins = 51
 hop_len = 4092
 win_len = 8192
 fs = 48000
@@ -62,7 +64,7 @@ def compute_expression(Xi, Xj, time_delay_range):
     return result
 
 def compute_azimuth(x,y):
-    return int(math.degrees(math.atan2((x),(y))))
+    return (math.degrees(math.atan2((x),(y)))/360)+0.5 # normalise 0 1
 
 if COMPUTE_GCC:
     for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
@@ -172,6 +174,64 @@ if COMPUTE_GCC:
         save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ACTIVE_FOLDER, saved_file)
         np.savetxt(save_path, gcc_feat, delimiter = ",")
 
+if COMPUTE_GCC2:
+    for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
+        cur_file = os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER, file_name)
+        print(file_cnt)
+
+        check_file = file_name.split('.')[0] + '.csv'
+        # check_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ACTIVE_FOLDER, check_file)
+        # if os.path.isfile(check_file):
+        #     continue
+        
+        sample_freq, mulchannel = wav.read(cur_file) 
+        mulchannel = mulchannel / 32768.0 # 32k to convert from int to float -1 1
+        max_frame = math.floor((mulchannel.shape[0] - win_len)/hop_len) # max frame in the gt file, 261 here
+
+        spectra = np.zeros((max_frame, win_len//2 + 1, nb_ch), dtype=complex)
+            
+        for ch_cnt in range(nb_ch):
+            stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=win_len, hop_length=hop_len,
+                                        win_length=win_len, window='hann')
+
+            spectra[:, :, ch_cnt] = stft_ch[:, :max_frame].T # 261, 4097, 4
+
+        time_delay_range = np.arange(-25, 26)   
+        gcc_feat = np.zeros((max_frame, time_delay_range.shape[-1], nCr(spectra.shape[-1], 2)))
+
+        gcc_channels = nCr(spectra.shape[-1], 2)
+        gcc_feat = np.zeros((spectra.shape[0], nb_bins, gcc_channels))
+        cnt = 0
+        cc_temp = 0
+        for m in range(spectra.shape[-1]):
+            for n in range(m+1, spectra.shape[-1]):
+                R = np.conj(spectra[:, :, m]) * spectra[:, :, n]
+                cc_temp += np.fft.irfft(np.exp(1.j*np.angle(R)))
+                cc = np.concatenate((cc_temp[:, -nb_bins//2:], cc_temp[:, :nb_bins//2]), axis=-1)
+                gcc_feat[:, :, cnt] = cc
+                cnt += 1
+
+        # # check results
+
+        # num_frames, num_bins, num_channels = gcc_feat.shape
+        # for channel in range(num_channels):
+        #     gcc_magnitude = np.abs(gcc_feat[:, :, channel])
+
+        #     plt.figure(figsize=(10, 6))
+        #     plt.imshow(gcc_magnitude.T, origin='lower', aspect='auto', cmap='viridis')
+        #     plt.colorbar(label='Magnitude')
+        #     plt.xlabel('Time Frames')
+        #     plt.ylabel('Frequency Bins')
+        #     plt.title(f'GCC Feature Magnitude - Channel {channel}')
+        #     plt.savefig("aaaaaaa.png")
+        #     plt.cla()
+        #     plt.clf()
+
+        gcc_feat = gcc_feat.reshape((max_frame, 51*6))
+        saved_file = file_name.split('.')[0] + '.csv'
+        save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, ACTIVE_FOLDER, saved_file)
+        np.savetxt(save_path, gcc_feat, delimiter = ",")
+
 if COMPUTE_MEL :
     for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
         cur_file = os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER, file_name)
@@ -245,12 +305,15 @@ if COMPUTE_LABEL:
         lbl = np.load(cur_file, allow_pickle=True)
 
         ref_audio_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, NORM_FOLDER, ACTIVE_FOLDER, file_name.split('.')[0] + '.csv')
-        max_len = np.genfromtxt(cur_file, delimiter=',', skip_header=0).shape[0]
+        max_len = np.genfromtxt(ref_audio_file, delimiter=',').shape[0]
         
         out_lbl = np.zeros((max_len, 1))
         for x in lbl:
             for y in x[1]:
-                out_lbl[x[0], 0] = compute_azimuth(y[0][0], y[0][1])
+                try:
+                    out_lbl[x[0], 0] = compute_azimuth(y[0][0], y[0][1])
+                finally: 
+                    continue
         
         saved_file = file_name.split('.g')[0] + '.csv'
         save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, ACTIVE_FOLDER, saved_file)
