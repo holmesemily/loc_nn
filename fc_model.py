@@ -45,7 +45,7 @@ if GENERATE_MODEL:
 
     model.summary()
     model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001),
-                loss=tf.keras.losses.MeanAbsoluteError(),
+                loss=tf.keras.losses.MeanSquaredError(), #MAE
                 metrics=['accuracy', is_within_5deg])
 
 if GENERATE_DATASET:
@@ -91,8 +91,8 @@ if GENERATE_DATASET:
     # ds = ds.shuffle(3, reshuffle_each_iteration=True)
 
 if MODEL_FIT: 
-    epoches = 10
-    model.fit_generator(ds, epochs=epoches, verbose=2, steps_per_epoch=450) #, validation_data=ds_val)
+    epoches = 50
+    model.fit(ds, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
     # steps per epoch = samples / batchsize
     # test = 102775
     # train = 183059

@@ -10,6 +10,7 @@ import joblib
 import csv
 import math
 import matplotlib.pyplot as plt
+import apkit
 
 DATASET_FOLDER = '../dataset/SSLR'
 TRAIN_FOLDER = 'lsp_train_106'
@@ -20,14 +21,17 @@ LABEL_FOLDER = 'label'
 AUDIO_FOLDER = 'audio'
 GT_FOLDER = 'gt_frame/'
 ALT_GCC_FOLDER = 'gcc2'
+GCCFB_FOLDER = 'gccfb'
 
 FEATURES_FOLDER = 'features'
 
-ACTIVE_FOLDER = TRAIN_FOLDER
+ACTIVE_FOLDER = TEST_FOLDER
 
 COMPUTE_MEL = 0
 COMPUTE_GCC = 0
-COMPUTE_GCC2 = 1
+COMPUTE_GCC2 = 0
+COMPUTE_GCC3 = 0
+COMPUTE_GCCFB = 1
 COMPUTE_NORM = 0
 COMPUTE_LABEL = 0
 
@@ -231,6 +235,55 @@ if COMPUTE_GCC2:
         saved_file = file_name.split('.')[0] + '.csv'
         save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, ACTIVE_FOLDER, saved_file)
         np.savetxt(save_path, gcc_feat, delimiter = ",")
+   
+if COMPUTE_GCCFB:
+    # load signal
+    win_size = 8192
+    hop_size = 4096
+    _FREQ_MAX = 8000
+    _FREQ_MIN = 100
+    nfbank = 40
+    zoom = 25 # number of center coefficients on each side, excluding center
+    eps = 1e-8
+
+    for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
+        cur_file = os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER, file_name)
+        print(file_cnt)
+        # Weipeng He
+        fs, sig = apkit.load_wav(cur_file)
+        tf = apkit.stft(sig, apkit.cola_hamming, win_size, hop_size)
+        nch, nframe, _ = tf.shape
+
+        # trim freq bins
+        nfbin = _FREQ_MAX * win_size // fs  # 0-8kHz
+        freq = np.fft.fftfreq(win_size)[:nfbin]
+        tf = tf[:, :, :nfbin]
+
+        # compute pairwise gcc on f-banks
+        ecov = apkit.empirical_cov_mat(tf, fw=1, tw=1)
+        fbw = apkit.mel_freq_fbank_weight(nfbank,
+                                        freq,
+                                        fs,
+                                        fmax=_FREQ_MAX,
+                                        fmin=_FREQ_MIN)
+        fbcc = apkit.gcc_phat_fbanks(ecov, fbw, zoom, freq, eps=eps)
+
+        # merge to a single numpy array, indexed by 'tpbd'
+        #                                           (time, pair, bank, delay)
+        feature = np.asarray(
+            [fbcc[(i, j)] for i in range(nch) for j in range(nch) if i < j])
+        feature = np.moveaxis(feature, 2, 0)
+
+        # and map [-1.0, 1.0] to 16-bit integer, to save storage space
+        dtype = np.int16
+        vmax = np.iinfo(dtype).max
+        feature = (feature * vmax).astype(dtype)
+
+        feature = feature.reshape((feature.shape[0], 6*40*51))
+        saved_file = file_name.split('.')[0] + '.csv'
+        save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, GCCFB_FOLDER, ACTIVE_FOLDER, saved_file)
+        np.savetxt(save_path, feature, delimiter = ",")
+       
 
 if COMPUTE_MEL :
     for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, AUDIO_FOLDER))):
