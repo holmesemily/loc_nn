@@ -29,7 +29,9 @@ def is_within_5deg(y_true, y_pred):
 if GENERATE_MODEL:
     model = tf.keras.Sequential([
             tf.keras.layers.Flatten(input_shape=(51,6)),
-            tf.keras.layers.Dense(200, activation = 'tanh'),
+            tf.keras.layers.Dense(300, activation = 'tanh'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dense(300, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Dense(51, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
@@ -108,8 +110,8 @@ if GENERATE_DATASET:
     # ds = ds.shuffle(3, reshuffle_each_iteration=True)
 
 if MODEL_FIT: 
-    epoches = 10
-    model.fit(ds, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
+    epoches = 15
+    model.fit(ds, epochs=epoches, verbose=2, steps_per_epoch=100) #, validation_data=ds_val)
     # model_detec.fit(ds_detec, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
     # steps per epoch = samples / batchsize
     # test = 102775

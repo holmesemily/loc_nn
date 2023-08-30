@@ -11,10 +11,12 @@ def AverageByGroup(df):
     result_data = []
     group_values = []
 
+    print(df)
     for val in df.iloc[:, 0]:
         if val != 0:
             group_values.append(val)
         elif group_values:
+            result_data.append(0)
             average = sum(group_values) / len(group_values)
             result_data.extend([average] * len(group_values))
             group_values = []
@@ -25,6 +27,7 @@ def AverageByGroup(df):
         average = sum(group_values) / len(group_values)
         result_data.extend([average] * len(group_values))
 
+    print(len(result_data))
     return pd.DataFrame(result_data)
 
 fig, axs = plt.subplots(1, 2, figsize=(16, 5))  # 1 row, 2 columns
