@@ -29,36 +29,32 @@ def is_within_5deg(y_true, y_pred):
 if GENERATE_MODEL:
     model = tf.keras.Sequential([
             tf.keras.layers.Flatten(input_shape=(51,6)),
-            tf.keras.layers.Dense(1000),
-            tf.keras.layers.Activation('tanh'), 
+            tf.keras.layers.Dense(200, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
-            # tf.keras.layers.Dense(1000),
-            # tf.keras.layers.Activation('tanh'),
-            # tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dense(300),
-            tf.keras.layers.Activation('tanh'),
+            tf.keras.layers.Dense(51, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dense(1),
-            tf.keras.layers.Activation('sigmoid'),
+            tf.keras.layers.Dense(1, activation = 'sigmoid'),
 
     ])
 
     model.summary()
-    model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001),
-                loss=tf.keras.losses.MeanSquaredError(), #MAE
-                metrics=['accuracy', is_within_5deg])
+    model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001),
+                loss=tf.keras.losses.MeanAbsoluteError(), #MAE
+                metrics=['accuracy'])
 
+    model_detec = tf.keras.Sequential([
+            tf.keras.layers.Flatten(input_shape=(51,6)),
+            tf.keras.layers.Dense(300, activation = 'tanh'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dense(1, activation = 'sigmoid'),
+    ])
+    
+    model_detec.summary()
+    model_detec.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001),
+                loss=tf.keras.losses.BinaryCrossentropy(), #MAE
+                metrics=['accuracy'])
+    
 if GENERATE_DATASET:
-    def example_generator_val():
-        for filecount2, filename2 in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER))):
-            cur_file2 = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER, filename2)
-            cur_label2 = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TEST_FOLDER, filename2.split('.')[0] + '.w8192_o4096.csv')
-            file2 = np.genfromtxt(cur_file2, delimiter=',')
-            label2 = np.genfromtxt(cur_label2, delimiter=',')
-
-            for index in range(label2.shape[0]):
-                line2 = np.reshape(file2, (file2.shape[0], 51, 6))[index]
-                yield line2, label2[index]
 
     def example_generator():
         for filecount, filename in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TRAIN_FOLDER))):
@@ -68,7 +64,18 @@ if GENERATE_DATASET:
             label = np.genfromtxt(cur_label, delimiter=',')
             for index in range(label.shape[0]):
                 line = np.reshape(file, (file.shape[0], 51, 6))[index]
-                yield line, label[index]
+                yield line, label[index][1]
+
+    def example_generator_detec():
+        for filecount, filename in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TRAIN_FOLDER))):
+            cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TRAIN_FOLDER, filename)
+            cur_label = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TRAIN_FOLDER, filename.split('.')[0] + '.w8192_o4096.csv')
+            file = np.genfromtxt(cur_file, delimiter=',')
+            label = np.genfromtxt(cur_label, delimiter=',')
+            for index in range(label.shape[0]):
+                line = np.reshape(file, (file.shape[0], 51, 6))[index]
+                yield line, int(label[index][0])
+
 
     # create a dataset from the generator function above
     ds = tf.data.Dataset.from_generator(
@@ -78,21 +85,32 @@ if GENERATE_DATASET:
         tf.TensorSpec(shape=(), dtype=tf.float32))
         )
 
-    ds_val = tf.data.Dataset.from_generator(
-        example_generator_val,
+    ds_detec = tf.data.Dataset.from_generator(
+        example_generator_detec,
         output_signature=(
         tf.TensorSpec(shape=(51, 6), dtype=tf.float32), 
-        tf.TensorSpec(shape=(), dtype=tf.float32))
+        tf.TensorSpec(shape=(), dtype=tf.int8))
         )
+
+    # ds_val = tf.data.Dataset.from_generator(
+    #     example_generator_val,
+    #     output_signature=(
+    #     tf.TensorSpec(shape=(51, 6), dtype=tf.float32), 
+    #     tf.TensorSpec(shape=(), dtype=tf.float32))
+    #     )
     
     ds = ds.batch(256)
     ds = ds.repeat(10)
-    ds_val = ds_val.batch(32)
+    
+    ds_detec = ds_detec.batch(256)
+    ds_detec = ds_detec.repeat(10)
+    # ds_val = ds_val.batch(32)
     # ds = ds.shuffle(3, reshuffle_each_iteration=True)
 
 if MODEL_FIT: 
-    epoches = 50
+    epoches = 10
     model.fit(ds, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
+    # model_detec.fit(ds_detec, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
     # steps per epoch = samples / batchsize
     # test = 102775
     # train = 183059
@@ -113,5 +131,10 @@ if PREDICT:
     x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=float)
     x_pred = np.reshape(x_pred, (x_pred.shape[0], 51,6))
     pred = model.predict(x_pred, verbose=2, steps=2)
-    dump_file = os.path.join(DATASET_FOLDER, PREDICT_FOLDER, "pred.csv")
+    dump_file = os.path.join(DATASET_FOLDER, PREDICT_FOLDER, "pred_doa.csv")
+
+    # pred_detec = model_detec.predict(x_pred, verbose=2, steps=2)
+    # dump_file_detec = os.path.join(DATASET_FOLDER, PREDICT_FOLDER, "pred_detec.csv")
+
     np.savetxt(dump_file, pred, delimiter = ",")  
+    # np.savetxt(dump_file_detec, pred_detec, delimiter = ",")  
