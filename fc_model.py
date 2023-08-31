@@ -24,11 +24,11 @@ PREDICT = 1
 
 def is_within_5deg(y_true, y_pred):
     delta_theta = tf.abs(tf.subtract(y_true[0], y_pred[0]))
-    return tf.reduce_mean(tf.cast(tf.less_equal(delta_theta, 5.0/360), tf.float32))
+    return tf.reduce_mean(tf.cast(tf.less_equal(delta_theta, 20.0/360), tf.float32))
 
 def lr_scheduler(epoch, lr):
-    if epoch > 1 & (epoch % 2) == 0:
-        lr = lr/2
+    if epoch > 1 & (epoch % 3) == 0:
+        lr = 0.01/(2*(epoch-1))  # change this coeff?
         return lr
     return lr
 
@@ -58,9 +58,9 @@ if GENERATE_MODEL:
     ])
     
     model_detec.summary()
-    model_detec.compile(optimizer=tf.optimizers.Adam(learning_rate=0.1, epsilon = 0.1),
+    model_detec.compile(optimizer=tf.optimizers.Adam(learning_rate=0.01, epsilon = 0.1),
                 loss=tf.keras.losses.BinaryCrossentropy(), #MAE
-                metrics=['accuracy'])
+                metrics=['accuracy', is_within_5deg])
     
 if GENERATE_DATASET:
 
@@ -119,7 +119,7 @@ if MODEL_FIT:
     epoches = 15
     callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
 
-    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=100, callbacks = callbacks) #, validation_data=ds_val)
+    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=450, callbacks = callbacks) #, validation_data=ds_val)
     # model_detec.fit(ds_detec, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
     # steps per epoch = samples / batchsize
     # test = 102775

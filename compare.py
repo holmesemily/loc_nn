@@ -41,16 +41,19 @@ df_gt_doa = df_gt.iloc[:, 1]
 
 threshold = 0.5
 df_pred_detec = df_gt_detec.apply(lambda x: 1 if x >= threshold else 0)
-
-
-# plt.plot(df_pred, color='red',  linestyle=':')
-axs[0].plot(df_gt_doa, color='blue', linestyle='-')
-# axs[0].plot(df_pred_doa.rolling(window=3).mean(), color='red', linestyle='-')
-axs[0].plot(df_pred_doa, color='red', linestyle=':', linewidth = 1)
 df_pred_doa.loc[df_pred_detec == 0] = 0
-axs[0].plot(AverageByGroup(df_pred_doa), color='red', linestyle='-')
 
-axs[1].plot(df_gt_detec, color='blue', linestyle='-')
-axs[1].plot(df_pred_detec, color='red', linestyle='-')
+axs[0].plot(df_gt_doa*360, color='blue', linestyle='-', label='ground truth')
+
+axs[0].plot(df_pred_doa*360, color='red', linestyle=':', linewidth = 1, label='prediction')
+axs[0].plot(AverageByGroup(df_pred_doa)*360, color='red', linestyle='-', label='averaged prediction')
+axs[0].set_title('Prediction of Azimuth based on Detection of a Source')
+axs[0].legend()
+axs[0].set_ylim(-5, 360)
+
+axs[1].plot(df_gt_detec, color='blue', linestyle='-', label='ground truth')
+axs[1].plot(df_pred_detec, color='red', linestyle='-', label='prediction')
+axs[1].set_title('Prediction of Detection of a Source')
+axs[1].legend()
 plt.tight_layout()
 plt.savefig("img/aaaaaaaa.png")
