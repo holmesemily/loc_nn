@@ -6,7 +6,7 @@ DATASET_FOLDER = '../dataset/SSLR'
 TRAIN_FOLDER = 'lsp_train_106'
 TEST_FOLDER = 'lsp_test_106'
 NORM_FOLDER = 'norm'
-LABEL_FOLDER = 'label'
+LABEL_FOLDER = 'label2'
 ALT_GCC_FOLDER = 'gcc2'
 
 AUDIO_FOLDER = 'audio'
@@ -25,6 +25,12 @@ PREDICT = 1
 def is_within_5deg(y_true, y_pred):
     delta_theta = tf.abs(tf.subtract(y_true[0], y_pred[0]))
     return tf.reduce_mean(tf.cast(tf.less_equal(delta_theta, 5.0/360), tf.float32))
+
+def lr_scheduler(epoch, lr):
+    if epoch > 1 & (epoch % 2) == 0:
+        lr = lr/2
+        return lr
+    return lr
 
 if GENERATE_MODEL:
     model = tf.keras.Sequential([
@@ -52,7 +58,7 @@ if GENERATE_MODEL:
     ])
     
     model_detec.summary()
-    model_detec.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001),
+    model_detec.compile(optimizer=tf.optimizers.Adam(learning_rate=0.1, epsilon = 0.1),
                 loss=tf.keras.losses.BinaryCrossentropy(), #MAE
                 metrics=['accuracy'])
     
@@ -107,11 +113,13 @@ if GENERATE_DATASET:
     ds_detec = ds_detec.batch(256)
     ds_detec = ds_detec.repeat(10)
     # ds_val = ds_val.batch(32)
-    # ds = ds.shuffle(3, reshuffle_each_iteration=True)
+    ds = ds.shuffle(3, reshuffle_each_iteration=True)
 
 if MODEL_FIT: 
     epoches = 15
-    model.fit(ds, epochs=epoches, verbose=2, steps_per_epoch=100) #, validation_data=ds_val)
+    callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
+
+    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=100, callbacks = callbacks) #, validation_data=ds_val)
     # model_detec.fit(ds_detec, epochs=epoches, verbose=2, steps_per_epoch=30) #, validation_data=ds_val)
     # steps per epoch = samples / batchsize
     # test = 102775
