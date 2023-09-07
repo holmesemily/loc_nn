@@ -9,6 +9,7 @@ Simple feed-forward fully connected model for SSL estimations
 import tensorflow as tf
 import numpy as np
 import os
+import json
 
 # Parameters
 DATASET_FOLDER = '../dataset/SSLR'
@@ -70,9 +71,9 @@ if GENERATE_MODEL:
     '''
     model = tf.keras.Sequential([
             tf.keras.layers.Flatten(input_shape=(51,6)),
-            tf.keras.layers.Dense(300, activation = 'tanh'),
+            tf.keras.layers.Dense(150, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dense(300, activation = 'tanh'),
+            tf.keras.layers.Dense(150, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Dense(51, activation = 'tanh'),
             tf.keras.layers.BatchNormalization(),
@@ -168,6 +169,23 @@ if MODEL_FIT:
     callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
 
     model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=450, callbacks = callbacks) 
+    # model.save("my_model", save_format='tf')
+    # model.save("my_model.zip")
+
+    weightList = []
+    biasList = []
+    for i in range(1,len(model.layers)):
+        weights = model.layers[i].get_weights()[0]
+        weightList.append((weights.T).tolist())
+        bias = [[float(b)] for b in model.layers[i].get_weights()[1]]
+        biasList.append(bias)
+
+    data = {"weights": weightList,"biases":biasList}
+    f = open('weightsandbiases.txt', "w")
+    json.dump(data, f)
+    f.close()
+
+
 
     if PREDIT_DETEC:
         model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=450, callbacks = callbacks) 

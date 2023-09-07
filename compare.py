@@ -9,11 +9,10 @@ import pandas as pd
 import os
 from matplotlib import pyplot as plt
 
-
 # Imports 
 pred_detec = '../dataset/SSLR/predict/pred_detec.csv'
 pred_doa = '../dataset/SSLR/predict/pred_doa.csv'
-gt_file = '../dataset/SSLR/features/label2/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.w8192_o4096.csv'
+gt_file = '../dataset/SSLR/features/label/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.w8192_o4096.csv'
 
 
 # Get average per chunk of voice activity
@@ -54,12 +53,14 @@ df_gt_doa = df_gt.iloc[:, 1]
 
 threshold = 0.5      # Threshold to push values towards 0 or 1
 df_pred_detec = df_gt_detec.apply(lambda x: 1 if x >= threshold else 0)
-df_pred_doa.loc[df_pred_detec == 0] = 0
 
 axs[0].plot(df_gt_doa*360, color='blue', linestyle='-', label='ground truth')
 
 axs[0].plot(df_pred_doa*360, color='red', linestyle=':', linewidth = 1, label='prediction')
+df_pred_doa.loc[df_pred_detec == 0] = 0
 axs[0].plot(AverageByGroup(df_pred_doa)*360, color='red', linestyle='-', label='averaged prediction')
+# axs[0].plot(df_pred_doa.rolling(window=5).mean()*360, color='red', linestyle='-', label='averaged prediction')
+
 axs[0].set_title('Prediction of Azimuth based on Detection of a Source')
 axs[0].legend()
 axs[0].set_ylim(-5, 360)
