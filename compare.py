@@ -13,7 +13,7 @@ import scipy, math
 # Imports 
 pred_detec = '../dataset/SSLR/predict/pred_detec.csv'
 pred_doa = '../dataset/SSLR/predict/pred_doa.csv'
-gt_file = '../dataset/SSLR/features/label/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.w8192_o4096.csv'
+gt_file = '../dataset/SSLR/features/label_c/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.w8192_o4096.csv'
 
 
 # Get average per chunk of voice activity
@@ -62,48 +62,25 @@ def accuracy(gt, exp, delta):
     return res.sum()/res.shape[0]
 
 # Create figure
-fig, axs = plt.subplots(1, 2, figsize=(16, 5)) 
-
+fig, axs = plt.subplots(1, 1, figsize=(8, 5)) 
 
 # Predictions
-df_pred_detec = np.genfromtxt(pred_detec, delimiter=',')
 df_pred_doa = np.genfromtxt(pred_doa, delimiter=',')
+df_pred_doa = np.argmax(df_pred_doa, axis=1)
+print(df_pred_doa)
 
 # Ground truths
 df_gt = np.genfromtxt(gt_file, delimiter=',')
-df_gt_detec = df_gt[:, 0]
-df_gt_doa = df_gt[:, 1]
 
 x = np.linspace(0, df_pred_doa.shape[0], df_pred_doa.shape[0])
 
-threshold = 0.5      # Threshold to push values towards 0 or 1
-df_pred_detec = (df_gt_detec >= threshold).astype(int)
+plt.plot(x, df_gt, color='blue', linestyle='-', label='ground truth')
+plt.plot(x, df_pred_doa, color='red', linestyle=':', linewidth = 1, label='prediction')
 
-axs[0].plot(x, df_gt_doa*360, color='blue', linestyle='-', label='ground truth')
+axs.set_title('Prediction of Azimuth')
+axs.legend()
+axs.set_ylim(-5, 73)
+plt.xlabel("frame number")
+plt.ylabel("class name (5° increment between class)")
 
-axs[0].plot(x, df_pred_doa*360, color='green', linestyle=':', linewidth = 1, label='prediction')
-df_pred_doa[df_pred_detec == 0] = 0
-averaged_pred_doa = AverageByGroup(df_pred_doa*360)
-# axs[0].plot(x, averaged_pred_doa, color='red', linestyle='-', label='averaged prediction')
-# axs[0].plot(df_pred_doa.rolling(window=5).mean()*360, color='red', linestyle='-', label='averaged prediction')
-
-xnew, ynew = Interpolate(df_pred_doa*360, 10)
-ynew = Post_Proc(ynew)
-axs[0].plot(xnew, ynew, color = 'green', linestyle='-', label='post proc')
-
-axs[0].set_title('Prediction of Azimuth based on Detection of a Source')
-axs[0].legend()
-axs[0].set_ylim(-5, 360)
-
-# axs[1].plot(df_gt_detec, color='blue', linestyle='-', label='ground truth')
-# axs[1].plot(df_pred_detec, color='red', linestyle='-', label='prediction')
-# axs[1].set_title('Prediction of Detection of a Source')
-# axs[1].legend()
-
-degree = 10
-print("accuracy as-is:", accuracy(df_gt[:, 1], df_gt_detec, degree/360))
-x, interp_gt = Interpolate(df_gt[:, 1]*360, 10)
-print("accuracy post-interp:", accuracy(interp_gt, ynew, degree))
-print("accuracy post-prec:", accuracy(df_gt[:, 1]*360, averaged_pred_doa, degree))
-plt.tight_layout()
 plt.savefig("img/comparison.png")
