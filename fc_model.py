@@ -50,7 +50,7 @@ Custom learning rate
 Returns a slower learning rate as epoches go on, allows for better convergence of the results
 '''
 def lr_scheduler(epoch, lr):
-    if epoch > 1 & (epoch % 3) == 0:
+    if epoch > 1 & (epoch % 5) == 0:
         lr = 0.01/(2*(epoch-1)) 
         return lr
     return lr
@@ -82,7 +82,7 @@ if GENERATE_MODEL:
     ])
 
     model.summary()
-    model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001),
+    model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.01),
                 loss=tf.keras.losses.MeanAbsoluteError(), 
                 metrics=['accuracy', is_within_20deg])
 
@@ -123,6 +123,16 @@ if GENERATE_DATASET:
             for index in range(label.shape[0]):
                 line = np.reshape(file, (file.shape[0], 51, 6))[index]
                 yield line, label[index][1]
+    
+    def generator_doa_val():
+        for filecount, filename in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER))):
+            cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER, filename)
+            cur_label = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TEST_FOLDER, filename.split('.')[0] + '.w8192_o4096.csv')
+            file = np.genfromtxt(cur_file, delimiter=',')
+            label = np.genfromtxt(cur_label, delimiter=',')
+            for index in range(label.shape[0]):
+                line = np.reshape(file, (file.shape[0], 51, 6))[index]
+                yield line, label[index][1]
 
     # create a dataset from the generator function above
     ds = tf.data.Dataset.from_generator(
@@ -134,6 +144,15 @@ if GENERATE_DATASET:
     ds = ds.batch(256)
     ds = ds.repeat(10)
     ds = ds.shuffle(3, reshuffle_each_iteration=True)
+
+    # create a dataset from the generator function above
+    ds_val = tf.data.Dataset.from_generator(
+        generator_doa_val,
+        output_signature=(
+        tf.TensorSpec(shape=(51, 6), dtype=tf.float32), 
+        tf.TensorSpec(shape=(), dtype=tf.float32))
+        )
+    ds_val = ds_val.batch(256)
 
     if PREDIT_DETEC:
         # yield an input frame (51,6) and the ground truth activation
@@ -168,7 +187,7 @@ if MODEL_FIT:
     epoches = 15
     callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
 
-    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=450, callbacks = callbacks) 
+    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=400, callbacks = callbacks) #, validation_data=ds_val) 
     # model.save("my_model", save_format='tf')
     # model.save("my_model.zip")
 
