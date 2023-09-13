@@ -190,34 +190,34 @@ if COMPUTE_LABEL_C:
 equilibrer dataset???
 '''
 
-for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER))):
-    print(file_cnt)
-    file_name_clean = file_name.split('.w')[0] + '.csv'
-    cur_lbl_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER, file_name)
-    cur_lbl = np.genfromtxt(cur_lbl_file, delimiter=',')
-    cur_gcc_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, ACTIVE_FOLDER, file_name_clean)
-    cur_gcc = np.genfromtxt(cur_gcc_file, delimiter=',')
-
-    skip = 0
-    for val in cur_lbl:
-        if val != 0:
-            new_lbl = np.copy(cur_lbl)[skip:]
-            new_gcc = np.copy(cur_gcc)[skip:]
-            break
-        else:
-            skip += 1
-
-    save_path_lbl = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER, file_name_clean)
-    np.savetxt(save_path_lbl, new_lbl, delimiter = ",", fmt='%i')
-    save_path_gcc = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_EVEN_FOLDER, ACTIVE_FOLDER, file_name_clean)
-    np.savetxt(save_path_gcc, new_gcc, delimiter = ",")
-
-# count = np.zeros((73,1))
 # for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER))):
-#     cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER, file_name)
-#     lbl = np.genfromtxt(cur_file, delimiter=',', dtype=int)
+#     print(file_cnt)
+#     file_name_clean = file_name.split('.w')[0] + '.csv'
+#     cur_lbl_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER, file_name)
+#     cur_lbl = np.genfromtxt(cur_lbl_file, delimiter=',')
+#     cur_gcc_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, ACTIVE_FOLDER, file_name_clean)
+#     cur_gcc = np.genfromtxt(cur_gcc_file, delimiter=',')
 
-#     for val in lbl:
-#         count[val] += 1
+#     skip = 0
+#     for val in cur_lbl:
+#         if val != 0:
+#             new_lbl = np.copy(cur_lbl)[skip:]
+#             new_gcc = np.copy(cur_gcc)[skip:]
+#             break
+#         else:
+#             skip += 1
 
-# print(count)
+#     save_path_lbl = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER, file_name_clean)
+#     np.savetxt(save_path_lbl, new_lbl, delimiter = ",", fmt='%i')
+#     save_path_gcc = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_EVEN_FOLDER, ACTIVE_FOLDER, file_name_clean)
+#     np.savetxt(save_path_gcc, new_gcc, delimiter = ",")
+
+count = np.zeros((73,1))
+for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER))):
+    cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER, file_name)
+    lbl = np.genfromtxt(cur_file, delimiter=',', dtype=int)
+
+    for val in lbl:
+        count[val] += 1
+
+print(count)

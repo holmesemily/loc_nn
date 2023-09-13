@@ -12,8 +12,9 @@ import scipy, math
 
 # Imports 
 pred_detec = '../dataset/SSLR/predict/pred_detec.csv'
-pred_doa = '../dataset/SSLR/predict/pred_doa.csv'
-gt_file = '../dataset/SSLR/features/label_c/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.w8192_o4096.csv'
+pred_doa = '../dataset/SSLR/predict/pred_doa1.csv'
+gt_file = '../dataset/SSLR/features/label_c/lsp_test_106/ssl-data_2017-04-29-13-41-12_1.w8192_o4096.csv'
+# gt_file = '../dataset/SSLR/features/label_c2/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.csv'
 
 
 # Get average per chunk of voice activity
@@ -61,6 +62,13 @@ def accuracy(gt, exp, delta):
     res = abs(gt - exp) < (delta)
     return res.sum()/res.shape[0]
 
+def Post_Proc_C(array):
+    for index in range(array):
+        if index != 0 and index != (len(array)-1):
+            if array[index-1] == array[index+1] and array[index] != array[index-1]: # if odd value sandwiched between two identical values, change it to that identical value
+                array[index] = array[index-1]
+    return array
+
 # Create figure
 fig, axs = plt.subplots(1, 1, figsize=(8, 5)) 
 
@@ -76,6 +84,7 @@ x = np.linspace(0, df_pred_doa.shape[0], df_pred_doa.shape[0])
 
 plt.plot(x, df_gt, color='blue', linestyle='-', label='ground truth')
 plt.plot(x, df_pred_doa, color='red', linestyle=':', linewidth = 1, label='prediction')
+plt.plot(x, Post_Proc_C(df_pred_doa), color='red', linestyle='-', linewidth = 1, label='post-processed prediction')
 
 axs.set_title('Prediction of Azimuth')
 axs.legend()
