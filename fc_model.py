@@ -89,7 +89,6 @@ if GENERATE_DATASET:
             cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TRAIN_FOLDER, filename)
             cur_label = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TRAIN_FOLDER, filename.split('.')[0] + '.w8192_o4096.csv')
             # cur_label = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TRAIN_FOLDER, filename)
-            # print(filename)
             file = np.genfromtxt(cur_file, delimiter=',')
             label = np.genfromtxt(cur_label, delimiter=',', dtype=int)
             for index in range(label.shape[0]):
@@ -124,7 +123,7 @@ if GENERATE_DATASET:
         tf.TensorSpec(shape=(51, 6), dtype=tf.float32), 
         tf.TensorSpec(shape=(), dtype=tf.int8))
         )
-    ds_val = ds_val.batch(256)
+    ds_val = ds_val.batch(128)
 
 '''
 Train the model
@@ -137,7 +136,7 @@ if MODEL_FIT:
     epoches = 15
     callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
 
-    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=400) #, validation_data=ds_val) 
+    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=400, validation_data=ds_val, validation_batch_size=64) 
     # model.save("my_model", save_format='tf')
     # model.save("my_model.zip")
 

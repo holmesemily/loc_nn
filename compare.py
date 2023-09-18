@@ -12,8 +12,8 @@ import scipy, math
 
 # Imports 
 pred_detec = '../dataset/SSLR/predict/pred_detec.csv'
-pred_doa = '../dataset/SSLR/predict/pred_doa1.csv'
-gt_file = '../dataset/SSLR/features/label_c/lsp_test_106/ssl-data_2017-04-29-13-41-12_1.w8192_o4096.csv'
+pred_doa = '../dataset/SSLR/predict/pred_doa10.csv'
+gt_file = '../dataset/SSLR/features/label_c/lsp_test_106/ssl-data_2017-04-29-13-41-12_10.w8192_o4096.csv'
 # gt_file = '../dataset/SSLR/features/label_c2/lsp_train_106/ssl-data_2017-05-13-15-25-43_0.csv'
 
 
@@ -63,7 +63,7 @@ def accuracy(gt, exp, delta):
     return res.sum()/res.shape[0]
 
 def Post_Proc_C(array):
-    for index in range(array):
+    for index in range(len(array)):
         if index != 0 and index != (len(array)-1):
             if array[index-1] == array[index+1] and array[index] != array[index-1]: # if odd value sandwiched between two identical values, change it to that identical value
                 array[index] = array[index-1]
@@ -75,7 +75,6 @@ fig, axs = plt.subplots(1, 1, figsize=(8, 5))
 # Predictions
 df_pred_doa = np.genfromtxt(pred_doa, delimiter=',')
 df_pred_doa = np.argmax(df_pred_doa, axis=1)
-print(df_pred_doa)
 
 # Ground truths
 df_gt = np.genfromtxt(gt_file, delimiter=',')
