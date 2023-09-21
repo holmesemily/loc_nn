@@ -33,7 +33,7 @@ ACTIVE_FOLDER = TEST_FOLDER
 COMPUTE_MEL = 0
 COMPUTE_GCC = 0
 COMPUTE_LABEL = 0
-COMPUTE_LABEL_C = 1
+COMPUTE_LABEL_C = 0
 VISUALISE_RESULTS = 0
 
 # Define Fourier and signal properties
@@ -123,45 +123,17 @@ if COMPUTE_GCC:
 
 
 '''
-Labels
+Labels for Classification
 
-Labels are an array of [X, 2]
+Labels are an array of [X, 1]
             X frames
-            2 columns: presence of an activity (1) or none (0)
-                       azimuth normalised between 0 (0°) and 1 (360°)
+            1 column: corresponding class (0 to 72)
 
-                       0.5 (180°) means the sound is in front of the robott
-'''
-if COMPUTE_LABEL:
-    max = 0.0
-    min = 100.0
-    
-    for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, GT_FOLDER))):
-        print(file_cnt)
-        cur_file = os.path.join(DATASET_FOLDER, ACTIVE_FOLDER, GT_FOLDER, file_name)
-        lbl = np.load(cur_file, allow_pickle=True)
-
-        ref_audio_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, NORM_FOLDER, ACTIVE_FOLDER, file_name.split('.')[0] + '.csv')
-        max_len = np.genfromtxt(ref_audio_file, delimiter=',').shape[0]
-        
-        out_lbl = np.zeros((max_len, 2))
-        for x in lbl:
-            for y in x[1]:
-                try:
-                    out_lbl[x[0], 1] = compute_azimuth(y[0][0], y[0][1])
-                    out_lbl[x[0], 0] = 1 if out_lbl[x[0], 1] != 0 else 0
-                finally: 
-                    continue
-        
-        saved_file = file_name.split('.g')[0] + '.csv'
-        save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, ACTIVE_FOLDER, saved_file)
-        np.savetxt(save_path, out_lbl, delimiter = ",")
-
-
-'''
-Labels (Classification)
-
-
+Classes are built as 5° increments.
+    Class 0: No activity
+    Class 1: Activity between 0° and 4°
+    Class 2: Activity between 5° and 9°
+    Etc.  
 '''
 if COMPUTE_LABEL_C:
     for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, ACTIVE_FOLDER))):
@@ -186,38 +158,3 @@ if COMPUTE_LABEL_C:
         save_path = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER, file_name)
         np.savetxt(save_path, lbl_new, delimiter = ",", fmt='%i')
 
-'''
-equilibrer dataset???
-'''
-
-# for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER))):
-#     print(file_cnt)
-#     file_name_clean = file_name.split('.w')[0] + '.csv'
-#     cur_lbl_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_FOLDER, ACTIVE_FOLDER, file_name)
-#     cur_lbl = np.genfromtxt(cur_lbl_file, delimiter=',')
-#     cur_gcc_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, ACTIVE_FOLDER, file_name_clean)
-#     cur_gcc = np.genfromtxt(cur_gcc_file, delimiter=',')
-
-#     skip = 0
-#     for val in cur_lbl:
-#         if val != 0:
-#             new_lbl = np.copy(cur_lbl)[skip:]
-#             new_gcc = np.copy(cur_gcc)[skip:]
-#             break
-#         else:
-#             skip += 1
-
-#     save_path_lbl = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER, file_name_clean)
-#     np.savetxt(save_path_lbl, new_lbl, delimiter = ",", fmt='%i')
-#     save_path_gcc = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_EVEN_FOLDER, ACTIVE_FOLDER, file_name_clean)
-#     np.savetxt(save_path_gcc, new_gcc, delimiter = ",")
-
-count = np.zeros((73,1))
-for file_cnt, file_name in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER))):
-    cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_C_EVEN_FOLDER, ACTIVE_FOLDER, file_name)
-    lbl = np.genfromtxt(cur_file, delimiter=',', dtype=int)
-
-    for val in lbl:
-        count[val] += 1
-
-print(count)

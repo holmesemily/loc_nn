@@ -30,8 +30,6 @@ GENERATE_MODEL = 1
 GENERATE_DATASET = 1
 MODEL_FIT = 1
 PREDICT = 1
-PREDIT_DETEC = 0            # Detection has its own constant, as I got the model right pretty earlier on
-                            # and didn't want to re-train it every time 
 
 '''
 Custom metric function 
@@ -88,13 +86,13 @@ if GENERATE_DATASET:
         for filecount, filename in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TRAIN_FOLDER))):
             cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TRAIN_FOLDER, filename)
             cur_label = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TRAIN_FOLDER, filename.split('.')[0] + '.w8192_o4096.csv')
-            # cur_label = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, LABEL_FOLDER, TRAIN_FOLDER, filename)
             file = np.genfromtxt(cur_file, delimiter=',')
             label = np.genfromtxt(cur_label, delimiter=',', dtype=int)
             for index in range(label.shape[0]):
                 line = np.reshape(file, (file.shape[0], 51, 6))[index]
                 yield line, label[index]
     
+    # Same for validation dataset
     def generator_doa_val():
         for filecount, filename in enumerate(os.listdir(os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER))):
             cur_file = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER, filename)
@@ -136,9 +134,7 @@ if MODEL_FIT:
     epoches = 15
     callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
 
-    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=400, validation_data=ds_val, validation_batch_size=64) 
-    # model.save("my_model", save_format='tf')
-    # model.save("my_model.zip")
+    model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=400) #, validation_data=ds_val, validation_batch_size=64) 
 
     weightList = []
     biasList = []
@@ -160,12 +156,13 @@ Prediction is done on only one file for quick computation and comparison
 '''
 if PREDICT:
     print("Predicting...")
-    for i in {0,1,3,4,6,7,9,10}:
-        sample = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER, "ssl-data_2017-04-29-13-41-12_" + str(i) + ".csv")
-        x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=float)
-        x_pred = np.reshape(x_pred, (x_pred.shape[0], 51,6))
 
-        probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-        pred = probability_model.predict(x_pred, verbose=2, steps=2)
-        dump_file = os.path.join(DATASET_FOLDER, PREDICT_FOLDER, "pred_doa" + str(i) + ".csv")
-        np.savetxt(dump_file, pred, delimiter = ",")  
+    sample = os.path.join(DATASET_FOLDER, FEATURES_FOLDER, ALT_GCC_FOLDER, TEST_FOLDER, "ssl-data_2017-05-13-15-25-43_9.csv")
+    x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=float)
+    x_pred = np.reshape(x_pred, (x_pred.shape[0], 51,6))
+    
+    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
+    pred = probability_model.predict(x_pred, verbose=2, steps=2)
+    
+    dump_file = os.path.join(DATASET_FOLDER, PREDICT_FOLDER, "pred_doa.csv")
+    np.savetxt(dump_file, pred, delimiter = ",")  
