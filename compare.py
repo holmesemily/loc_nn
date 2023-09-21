@@ -6,9 +6,8 @@ Compare the predictions with the ground values for a given file
 '''
 
 import numpy as np
-import os
 from matplotlib import pyplot as plt
-import scipy, math
+import scipy
 
 # Imports 
 pred_detec = '../dataset/SSLR/predict/pred_detec.csv'
@@ -51,6 +50,7 @@ def Interpolate(array, coef):
     
     return xs, interp
 
+# Post process by using a smoothing filter
 def Post_Proc(array):
     kernel_size = 50
     kernel = np.ones(kernel_size) / kernel_size 
@@ -80,30 +80,28 @@ threshold = 0.5      # Threshold to push values towards 0 or 1
 df_pred_detec = (df_gt_detec >= threshold).astype(int)
 
 axs[0].plot(x, df_gt_doa*360, color='blue', linestyle='-', label='ground truth')
-
 axs[0].plot(x, df_pred_doa*360, color='green', linestyle=':', linewidth = 1, label='prediction')
+
+# Post-process with the detection network 
 df_pred_doa[df_pred_detec == 0] = 0
 averaged_pred_doa = AverageByGroup(df_pred_doa*360)
-# axs[0].plot(x, averaged_pred_doa, color='red', linestyle='-', label='averaged prediction')
-# axs[0].plot(df_pred_doa.rolling(window=5).mean()*360, color='red', linestyle='-', label='averaged prediction')
+axs[0].plot(x, averaged_pred_doa, color='red', linestyle='-', label='averaged prediction')
 
-xnew, ynew = Interpolate(df_pred_doa*360, 10)
-ynew = Post_Proc(ynew)
-axs[0].plot(xnew, ynew, color = 'green', linestyle='-', label='post proc')
+# Post-process with moving average
+# axs[0].plot(df_pred_doa.rolling(window=5).mean()*360, color='red', linestyle='-', label='averaged prediction')
 
 axs[0].set_title('Prediction of Azimuth based on Detection of a Source')
 axs[0].legend()
 axs[0].set_ylim(-5, 360)
 
+# Detection network output, if it applies
 # axs[1].plot(df_gt_detec, color='blue', linestyle='-', label='ground truth')
 # axs[1].plot(df_pred_detec, color='red', linestyle='-', label='prediction')
 # axs[1].set_title('Prediction of Detection of a Source')
 # axs[1].legend()
 
 degree = 10
-print("accuracy as-is:", accuracy(df_gt[:, 1], df_gt_detec, degree/360))
-x, interp_gt = Interpolate(df_gt[:, 1]*360, 10)
-print("accuracy post-interp:", accuracy(interp_gt, ynew, degree))
-print("accuracy post-prec:", accuracy(df_gt[:, 1]*360, averaged_pred_doa, degree))
+print("accuracy:", accuracy(df_gt[:, 1], df_gt_detec, degree/360))
+
 plt.tight_layout()
 plt.savefig("img/comparison.png")

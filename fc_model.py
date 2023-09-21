@@ -30,8 +30,7 @@ GENERATE_MODEL = 1
 GENERATE_DATASET = 1
 MODEL_FIT = 1
 PREDICT = 1
-PREDIT_DETEC = 0            # Detection has its own constant, as I got the model right pretty earlier on
-                            # and didn't want to re-train it every time 
+PREDIT_DETEC = 0            
 
 '''
 Custom metric function 
@@ -188,8 +187,6 @@ if MODEL_FIT:
     callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)]
 
     model.fit(ds, epochs=epoches, batch_size=64, verbose=2, steps_per_epoch=400, callbacks = callbacks) #, validation_data=ds_val) 
-    # model.save("my_model", save_format='tf')
-    # model.save("my_model.zip")
 
     weightList = []
     biasList = []
